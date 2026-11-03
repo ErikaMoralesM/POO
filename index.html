@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Interactivo: POO, Clases y Objetos - Programación II DACYTI UJAT</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+        }
+        .card-glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+
+    <!-- Container Principal del Quiz -->
+    <div id="app-container" class="w-full max-w-3xl mx-auto">
+        
+        <!-- PANTALLA DE BIENVENIDA -->
+        <div id="welcome-screen" class="card-glass shadow-2xl rounded-3xl p-8 md:p-12 text-center animate-pop">
+            <div class="inline-block p-4 bg-indigo-100 text-indigo-600 rounded-2xl text-4xl mb-6 shadow-inner">
+                <i class="fa-solid fa-laptop-code"></i>
+            </div>
+            <span class="inline-block px-4 py-1.5 bg-pink-100 text-pink-700 font-bold text-xs rounded-full uppercase tracking-wider mb-3">
+                Licenciatura en Sistemas Computacionales • DACYTI • UJAT
+            </span>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
+                Programación II: <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-600">POO, Clases y Objetos</span>
+            </h1>
+            <p class="text-gray-600 text-base md:text-lg mb-8 max-w-xl mx-auto leading-relaxed">
+                Evaluación interactiva basada íntegramente en la recopilación oficial de la materia. Pon a prueba tus conocimientos sobre atributos, constructores, UML, relaciones entre clases y los 5 fundamentos del EOO.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button onclick="startQuiz()" class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-pink-600 text-white font-bold text-lg rounded-2xl shadow-lg hover:opacity-95 transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3 cursor-pointer">
+                    <i class="fa-solid fa-play"></i> Iniciar Test Académico
+                </button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE PREGUNTAS (Oculta al inicio) -->
+        <div id="quiz-screen" class="card-glass shadow-2xl rounded-3xl p-6 md:p-10 hidden animate-pop">
+            <!-- Barra superior de estado -->
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 pb-4 border-b border-gray-200 gap-4">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span id="question-badge" class="px-3.5 py-1.5 bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-xs uppercase tracking-wide">
+                        Pregunta 1 de 12
+                    </span>
+                    <span id="score-counter" class="text-gray-700 font-semibold text-sm">
+                        <i class="fa-solid fa-star text-amber-500 mr-1"></i> Aciertos: <span id="current-score">0</span>
+                    </span>
+                </div>
+                <!-- Barra de Progreso -->
+                <div class="w-full sm:w-52 bg-gray-200 h-3.5 rounded-full overflow-hidden shadow-inner">
+                    <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-pink-500 h-full w-0 transition-all duration-400"></div>
+                </div>
+            </div>
+
+            <!-- Título / Enunciado de la Pregunta -->
+            <div class="mb-8">
+                <h2 id="question-title" class="text-xl md:text-2xl font-bold text-gray-900 leading-snug">
+                    <!-- Aquí se inyecta la pregunta -->
+                </h2>
+            </div>
+
+            <!-- Contenedor de Opciones -->
+            <div id="options-container" class="space-y-3.5 mb-8">
+                <!-- Se inyectan dinámicamente -->
+            </div>
+
+            <!-- Cuadro de Retroalimentación Inmediata -->
+            <div id="feedback-box" class="hidden p-4 rounded-2xl mb-6 border transition-all">
+                <div class="flex items-start gap-3">
+                    <div id="feedback-icon" class="text-2xl mt-0.5"></div>
+                    <div>
+                        <h4 id="feedback-title" class="font-bold text-lg"></h4>
+                        <p id="feedback-text" class="text-sm mt-1 leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón Siguiente -->
+            <div class="flex justify-end">
+                <button id="next-btn" onclick="nextQuestion()" class="hidden px-7 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer">
+                    Siguiente Pregunta <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE RESULTADOS (Oculta al inicio) -->
+        <div id="results-screen" class="card-glass shadow-2xl rounded-3xl p-8 md:p-12 text-center hidden animate-pop">
+            <div id="result-icon-container" class="inline-block p-5 bg-amber-100 text-amber-600 rounded-3xl text-5xl mb-6 shadow-inner">
+                <i id="result-main-icon" class="fa-solid fa-trophy"></i>
+            </div>
+            <span class="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 font-bold text-xs rounded-full uppercase tracking-wider mb-2">
+                DACYTI • UJAT • Programación II
+            </span>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">¡Test Finalizado!</h2>
+            <p id="result-subtitle" class="text-gray-600 text-base mb-6">Has completado la revisión de conceptos de POO, Clases y UML.</p>
+            
+            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8 max-w-md mx-auto shadow-sm">
+                <div class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Calificación Obtenida</div>
+                <div id="final-score-display" class="text-4xl md:text-5xl font-extrabold text-indigo-600 mb-2">0 / 12</div>
+                <div id="final-message" class="text-gray-700 font-medium text-sm leading-relaxed"></div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button onclick="restartQuiz()" class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-pink-600 text-white font-bold text-lg rounded-2xl shadow-lg hover:opacity-95 transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3 cursor-pointer">
+                    <i class="fa-solid fa-rotate-right"></i> Volver a Intentar Test
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script del Cuestionario -->
+    <script>
+        // Banco completo de 12 preguntas abarcando todos los apartados del documento oficial
+        const questions = [
+            {
+                question: "1. ¿Cómo se define un Objeto en el contexto del Enfoque Orientado a Objetos (EOO)?",
+                options: [
+                    "Una variable estática que se almacena exclusivamente en archivos de texto plano.",
+                    "Una entidad que encapsula datos (atributos) y acciones o funciones que los manejan (métodos), siendo instancia de una clase.",
+                    "Un diagrama gráfico UML sin métodos ni tiempo de ejecución en el sistema."
+                ],
+                correct: 1,
+                explanation: "Correcto. Según el documento, un objeto encapsula datos (atributos) y funciones (métodos), y se define como una instancia o particularización de una clase."
+            },
+            {
+                question: "2. ¿Qué determina el 'Estado' de un objeto en un momento dado de su tiempo de vida?",
+                options: [
+                    "Los valores específicos que poseen sus atributos en ese instante.",
+                    "El nombre identificador único asignado al declarar la variable de clase.",
+                    "La cantidad de métodos constructores privados definidos en la implementación."
+                ],
+                correct: 0,
+                explanation: "Correcto. El estado de un objeto está determinado en todo momento por los valores actuales de sus atributos."
+            },
+            {
+                question: "3. ¿Qué diferencia fundamental existe entre una Clase y un Objeto según la sección 4?",
+                options: [
+                    "Las clases sólo existen durante la ejecución del programa y los objetos son plantillas estáticas.",
+                    "La clase es una plantilla o descripción netamente estática y abstracta, mientras que el objeto es la instancia concreta que existe durante la ejecución.",
+                    "No hay diferencia, ambos términos son sinónimos absolutos en programación algorítmica."
+                ],
+                correct: 1,
+                explanation: "Correcto. Las clases son descripciones estáticas o moldes de fábrica, mientras que durante la ejecución del programa sólo existen los objetos."
+            },
+            {
+                question: "4. ¿Qué representan los modificadores de acceso Público (+), Privado (-) y Protegido (#)?",
+                options: [
+                    "Público: accesible fuera de la clase; Privado: solo dentro de la implementación de la clase; Protegido: accesible para la propia clase y sus clases hijas.",
+                    "Público: solo dentro de la clase; Privado: accesible por cualquier clase externa; Protegido: exclusivo para constantes globales.",
+                    "Público: métodos de tipo entero; Privado: atributos reales; Protegido: variables lógicas."
+                ],
+                correct: 0,
+                explanation: "Correcto. El documento detalla que lo público es accesible globalmente, lo privado solo dentro de la clase, y lo protegido para la clase y sus subclases."
+            },
+            {
+                question: "5. Estructuralmente, ¿de qué 3 partes consta un Mensaje enviado entre objetos?",
+                options: [
+                    "Tipo de dato, valor inicial y memoria RAM asignada.",
+                    "Identidad del receptor (objeto), nombre del método a ejecutar (público) y lista de parámetros opcionales.",
+                    "Nombre de la superclase, operador de herencia y constructor por defecto."
+                ],
+                correct: 1,
+                explanation: "Correcto. Estructuralmente consta de: 1. Identidad del receptor, 2. Nombre del método público, y 3. Lista de parámetros."
+            },
+            {
+                question: "6. En un Diagrama de Clases UML, ¿cómo se divide gráficamente el rectángulo que representa una clase?",
+                options: [
+                    "En dos partes: Arriba los atributos y abajo los métodos constructores.",
+                    "En tres partes: Arriba el nombre de la clase, en medio los atributos y abajo los métodos.",
+                    "En cuatro cuadrantes que separan funciones de variables lógicas."
+                ],
+                correct: 1,
+                explanation: "Correcto. Las clases se denotan como rectángulos divididos en tres partes: nombre de clase arriba, atributos en medio y métodos abajo."
+            },
+            {
+                question: "7. ¿Cuál es la característica principal de la relación de Composición en comparación con la Agregación?",
+                options: [
+                    "La composición es una relación más fuerte donde el componente es parte esencial; si este es eliminado o desaparece, la clase mayor deja de existir.",
+                    "La composición permite herencia múltiple entre superclases abstractas.",
+                    "La agregación requiere obligatoriamente que las clases estén en el mismo archivo fuente."
+                ],
+                correct: 0,
+                explanation: "Correcto. La composición es la relación todo-parte más fuerte al punto que si el componente desaparece, la clase mayor deja de existir."
+            },
+            {
+                question: "8. ¿Qué define el principio de Abstracción en el Enfoque Orientado a Objetos?",
+                options: [
+                    "Ignorar aspectos irrelevantes de un fenómeno para concentrarse en las características esenciales (datos y operaciones) que distinguen al objeto.",
+                    "Ocultar por completo la implementación interna mediante constructores privados.",
+                    "Dividir un programa en módulos independientes compilables por separado."
+                ],
+                correct: 0,
+                explanation: "Correcto. La abstracción denota las características esenciales ignorando lo irrelevante, utilizando mecanismos como generalización y agregación."
+            },
+            {
+                question: "9. ¿En qué consiste el Polimorfismo Operacional o Sobrecarga Operacional?",
+                options: [
+                    "En aplicar operaciones con igual nombre a diferentes clases, interpretándose en el contexto del objeto particular que lo invoca (como calcular Área).",
+                    "En duplicar los atributos privados para ahorrar memoria en el procesador.",
+                    "En heredar de forma múltiple propiedades de clases no relacionadas."
+                ],
+                correct: 0,
+                explanation: "Correcto. Permite que un método tenga múltiples implementaciones con el mismo nombre (ej. Área para cuadrado, rectángulo y círculo)."
+            },
+            {
+                question: "10. Cuando en una clase hija se desea invocar un método sobrecargado perteneciente a la clase madre, ¿qué sintaxis algorítmica se utiliza?",
+                options: [
+                    "super.nombre_método",
+                    "Clase_Madre::nombre_método",
+                    "padre->nombre_método()"
+                ],
+                correct: 1,
+                explanation: "Correcto. El documento especifica que para invocar un método sobrecargado de la clase madre se usa la sintaxis: Clase_Madre::nombre_método."
+            },
+            {
+                question: "11. Analizando el Ejemplo 3 del documento, ¿qué relación existe entre la clase Punto3D y la clase Punto2D?",
+                options: [
+                    "Punto3D hereda de Punto2D (Herencia), incorporando además la coordenada Z y métodos asociados.",
+                    "Punto2D es una composición estricta de tres objetos Punto3D.",
+                    "No tienen relación jerárquica, solo se comunican mediante mensajes de asociación."
+                ],
+                correct: 0,
+                explanation: "Correcto. `Clase Punto3D Hereda de Punto2D` reutiliza las coordenadas X e Y y añade la coordenada Z."
+            },
+            {
+                question: "12. En el Ejemplo 4 de la clase CuentaBancaria, ¿cómo se garantiza que los datos internos como el Saldo no sean alterados arbitrariamente?",
+                options: [
+                    "Declarando el atributo Saldo como Privado (-), permitiendo su consulta y modificación únicamente a través de métodos públicos autorizados.",
+                    "Haciendo que todos los atributos sean estáticos y globales en el programa.",
+                    "Utilizando herencia múltiple en el algoritmo principal."
+                ],
+                correct: 0,
+                explanation: "Correcto. El encapsulamiento protege los atributos privados (como Saldo) requiriendo métodos específicos como depositar, retirar u obtenerSaldo."
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answeredCurrent = false;
+
+        function startQuiz() {
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            answeredCurrent = false;
+            const q = questions[currentQuestionIndex];
+            
+            // Textos y contadores
+            document.getElementById('question-badge.innerText', `Pregunta ${currentQuestionIndex + 1} de ${questions.length}`);
+            document.getElementById('question-badge').innerText = `Pregunta ${currentQuestionIndex + 1} de ${questions.length}`;
+            document.getElementById('current-score').innerText = score;
+            document.getElementById('question-title').innerText = q.question;
+            
+            // Barra de progreso
+            const progressPct = ((currentQuestionIndex) / questions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPct}%`;
+
+            // Resetear feedback y botón siguiente
+            const feedbackBox = document.getElementById('feedback-box');
+            feedbackBox.classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+
+            // Renderizar opciones
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-2xl border-2 border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 font-medium text-gray-800 transition-all flex items-center justify-between group cursor-pointer shadow-sm";
+                btn.innerHTML = `
+                    <span class="flex items-center gap-3.5 pr-2">
+                        <span class="w-8 h-8 rounded-xl bg-gray-100 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center font-bold text-sm transition-colors text-gray-700 shrink-0">${String.fromCharCode(65 + index)}</span>
+                        <span class="leading-snug">${opt}</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-gray-300 group-hover:text-indigo-600 transition-colors shrink-0"></i>
+                `;
+                btn.onclick = () => selectOption(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function selectOption(selectedIndex, selectedBtn) {
+            if (answeredCurrent) return;
+            answeredCurrent = true;
+
+            const q = questions[currentQuestionIndex];
+            const optionsContainer = document.getElementById('options-container');
+            const buttons = optionsContainer.getElementsByTagName('button');
+
+            // Deshabilitar botones y marcar correcta
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                buttons[i].classList.remove('hover:bg-indigo-50', 'hover:border-indigo-300', 'cursor-pointer');
+                if (i === q.correct) {
+                    buttons[i].classList.remove('border-gray-200', 'bg-white');
+                    buttons[i].classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-950');
+                    buttons[i].querySelector('span span:first-child').classList.remove('bg-gray-100', 'text-gray-700');
+                    buttons[i].querySelector('span span:first-child').classList.add('bg-emerald-600', 'text-white');
+                }
+            }
+
+            const feedbackBox = document.getElementById('feedback-box');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackText = document.getElementById('feedback-text');
+
+            feedbackBox.classList.remove('hidden');
+
+            if (selectedIndex === q.correct) {
+                score++;
+                document.getElementById('current-score').innerText = score;
+                selectedBtn.classList.remove('border-gray-200', 'bg-white');
+                selectedBtn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-950');
+                
+                feedbackBox.className = "p-4 rounded-2xl mb-6 border bg-emerald-50 border-emerald-200 text-emerald-900 animate-pop";
+                feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600"></i>';
+                feedbackTitle.innerText = "¡Respuesta Correcta!";
+            } else {
+                selectedBtn.classList.remove('border-gray-200', 'bg-white');
+                selectedBtn.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-950');
+                selectedBtn.querySelector('span span:first-child').classList.remove('bg-gray-100', 'text-gray-700');
+                selectedBtn.querySelector('span span:first-child').classList.add('bg-rose-600', 'text-white');
+
+                feedbackBox.className = "p-4 rounded-2xl mb-6 border bg-rose-50 border-rose-200 text-rose-900 animate-pop";
+                feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-600"></i>';
+                feedbackTitle.innerText = "Respuesta Incorrecta";
+            }
+
+            feedbackText.innerText = q.explanation;
+
+            // Mostrar botón siguiente
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.classList.remove('hidden');
+            if (currentQuestionIndex === questions.length - 1) {
+                nextBtn.innerHTML = 'Ver Calificación Final <i class="fa-solid fa-flag-checkered ml-2"></i>';
+            } else {
+                nextBtn.innerHTML = 'Siguiente Pregunta <i class="fa-solid fa-arrow-right ml-2"></i>';
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('results-screen').classList.remove('hidden');
+            
+            document.getElementById('final-score-display').innerText = `${score} / ${questions.length}`;
+
+            const finalMsg = document.getElementById('final-message');
+            const resultIcon = document.getElementById('result-main-icon');
+            const resultContainer = document.getElementById('result-icon-container');
+
+            if (score === 12) {
+                finalMsg.innerText = "¡Excelente desempeño académico! Dominas a la perfección todos los conceptos de Programación II, Clases, Objetos y UML para la DACYTI-UJAT.";
+                resultContainer.className = "inline-block p-5 bg-emerald-100 text-emerald-600 rounded-3xl text-5xl mb-6 shadow-inner";
+                resultIcon.className = "fa-solid fa-crown";
+                triggerConfetti();
+            } else if (score >= 9) {
+                finalMsg.innerText = "¡Muy buen trabajo! Tienes bases sólidas en el Enfoque Orientado a Objetos y la teoría vista en clases.";
+                resultContainer.className = "inline-block p-5 bg-indigo-100 text-indigo-600 rounded-3xl text-5xl mb-6 shadow-inner";
+                resultIcon.className = "fa-solid fa-award";
+                triggerConfetti();
+            } else {
+                finalMsg.innerText = "Buen intento. Te invitamos a repasar los apuntes sobre constructores, modificadores de acceso y relaciones entre clases del documento oficial.";
+                resultContainer.className = "inline-block p-5 bg-amber-100 text-amber-600 rounded-3xl text-5xl mb-6 shadow-inner";
+                resultIcon.className = "fa-solid fa-book-open-reader";
+            }
+        }
+
+        function triggerConfetti() {
+            confetti({
+                particleCount: 130,
+                spread: 80,
+                origin: { y: 0.6 }
+            });
+        }
+
+        function restartQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('results-screen').classList.add('hidden');
+            document.getElementById('welcome-screen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
